@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>media-player demo</title>
+<link rel="stylesheet" href="../web/media-player.css">
+<style>
+    body {
+        margin: 0;
+        padding: 1.5rem 2%;
+        font-family: system-ui, sans-serif;
+        background: #fff;
+        color: #000;
+    }
+    body.dark {
+        background: #000;
+        color: #fff;
+    }
+    h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.75rem;
+    }
+    h2 {
+        margin: 2rem 0 0.5rem;
+        font-size: 1.25rem;
+    }
+    p {
+        margin: 0.25rem 0 0.75rem;
+    }
+    /* The light theme: how a page maps its own colors onto the player. */
+    body:not(.dark) .mp {
+        --mp-bg: #fff;
+        --mp-text: #000;
+        --mp-border: #000;
+        --mp-hover: #e8eefc;
+        --mp-accent: #1d4ed8;
+    }
+    /* What wide mode (T) means on this page: the video takes the whole width. */
+    .demo-video {
+        width: 75%;
+    }
+    html.mp-wide .demo-video {
+        width: 100%;
+    }
+    .resizable {
+        width: 60%;
+        min-width: 14rem;
+        padding: 0.5rem;
+        overflow: auto;
+        resize: both;
+        border: 2px dashed currentColor;
+    }
+    .cameras {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px;
+    }
+    .cameras video {
+        display: block;
+        width: 100%;
+    }
+    .events {
+        overflow: hidden;
+        font-family: ui-monospace, monospace;
+        font-size: 1rem;
+        font-weight: 600;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+</style>
+</head>
+<body class="dark">
+<h1>media-player</h1>
+<p>Run <code>demo/make-media.sh</code> once to make the media. Press <strong>?</strong> in a player for its keys.</p>
+<p><label><input type="checkbox" id="dark" checked> Dark page</label></p>
+<p class="events" id="events">Events from the players show here.</p>
+
+<h2>Video with two kinds of markers</h2>
+<p>The legend's buttons hide or show a kind. <strong>T</strong> widens the page, <strong>S</strong> saves the frame,
+    <strong>Shift+J</strong> and <strong>Shift+L</strong> jump by halves.</p>
+<div class="demo-video">
+    <video controls preload="metadata" src="media/pattern.mp4" data-media-player data-title="Test pattern"
+        data-wide data-half-jumps
+        data-marker-kinds='[{"kind": "chapter", "label": "Chapter"}, {"kind": "cut", "label": "Cut", "color": "#e879f9"}]'
+        data-markers='[{"t": 0, "kind": "chapter", "label": "Opening"}, {"t": 30, "kind": "chapter", "label": "Middle part"},
+            {"t": 95.5, "kind": "chapter", "label": "Late part"}, {"t": 140, "kind": "chapter", "label": "Ending"},
+            {"t": 12, "kind": "cut"}, {"t": 47, "kind": "cut"}, {"t": 61.5, "kind": "cut"}, {"t": 118, "kind": "cut"}]'></video>
+</div>
+
+<h2>Audio in parts</h2>
+<p>The buttons beside play, <strong>Shift+P</strong> and <strong>Shift+N</strong> (and a headset's track keys) move between the parts.</p>
+<audio id="parts" controls preload="metadata" src="media/tone.m4a" data-media-player data-title="Part 1: tone"></audio>
+
+<h2>Two cameras on one clock, without sound</h2>
+<p>A source: the player drives both videos as one.</p>
+<div class="cameras" id="cameras">
+    <video muted preload="metadata" src="media/pattern.mp4"></video>
+    <video muted preload="metadata" src="media/pattern.mp4"></video>
+</div>
+
+<h2>Audio in a box you can resize</h2>
+<p>Drag the lower right corner: the scale and controls follow the box's width.</p>
+<div class="resizable">
+    <audio controls preload="metadata" src="media/tone.m4a" data-media-player data-title="Tone, resizable" data-resume="off"></audio>
+</div>
+
+<h2>Missing file</h2>
+<audio controls preload="metadata" src="media/missing.m4a" data-media-player data-title="Missing"></audio>
+
+<script src="../web/media-player.js"></script>
+<script>
+    document.getElementById('dark').addEventListener('change', function (event) {
+        document.body.classList.toggle('dark', event.target.checked);
+    });
+
+    const events = document.getElementById('events');
+    ['seek', 'marker', 'captions', 'wide'].forEach(function (name) {
+        document.addEventListener(`media-player:${name}`, function (event) {
+            const detail = Object.assign({}, event.detail);
+            delete detail.player;
+            events.textContent = `${event.detail.player.title}: ${name} ${JSON.stringify(detail)}`;
+        });
+    });
+
+    const parts = [
+        { src: 'media/tone.m4a', title: 'Part 1: tone' },
+        { src: 'media/pattern.mp4', title: 'Part 2: test pattern sound' },
+    ];
+    const partsAudio = document.getElementById('parts');
+    const partsPlayer = MediaPlayer.enhance(partsAudio);
+    function showPart(index) {
+        if (partsAudio.getAttribute('src') !== parts[index].src) {
+            partsAudio.src = parts[index].src;
+            partsPlayer.title = parts[index].title;
+            partsPlayer.play();
+        }
+        partsPlayer.setItems({
+            label: 'Part',
+            previous: index > 0 ? () => showPart(index - 1) : null,
+            next: index < parts.length - 1 ? () => showPart(index + 1) : null,
+        });
+    }
+    showPart(0);
+
+    // Every camera follows the first one's clock.
+    class Cameras extends MediaPlayer.Source {
+        constructor(videos) {
+            super();
+            this.videos = videos;
+            this.lead = videos[0];
+            ['loadedmetadata', 'durationchange', 'play', 'playing', 'pause', 'ended', 'timeupdate', 'seeking',
+                'seeked', 'waiting', 'canplay', 'progress', 'ratechange', 'error'].forEach((type) => {
+                this.lead.addEventListener(type, () => this.emit(type));
+            });
+        }
+        get currentTime() { return this.lead.currentTime; }
+        set currentTime(t) { this.videos.forEach((video) => { video.currentTime = t; }); }
+        get duration() { return this.lead.duration; }
+        get paused() { return this.lead.paused; }
+        get ended() { return this.lead.ended; }
+        get seeking() { return this.videos.some((video) => video.seeking); }
+        get readyState() { return this.lead.readyState; }
+        get buffered() { return this.lead.buffered; }
+        get playbackRate() { return this.lead.playbackRate; }
+        set playbackRate(rate) { this.videos.forEach((video) => { video.playbackRate = rate; }); }
+        get defaultPlaybackRate() { return this.lead.defaultPlaybackRate; }
+        set defaultPlaybackRate(rate) { this.videos.forEach((video) => { video.defaultPlaybackRate = rate; }); }
+        play() { return Promise.all(this.videos.map((video) => video.play())); }
+        pause() { this.videos.forEach((video) => video.pause()); }
+    }
+    const cameras = document.getElementById('cameras');
+    MediaPlayer.attach(new Cameras(Array.from(cameras.querySelectorAll('video'))), {
+        stage: cameras, kind: 'video', sound: false, title: 'Two cameras', resumeKey: 'demo-cameras',
+    });
+</script>
+</body>
+</html>
