@@ -52,8 +52,8 @@ Session handles the system's media keys, and errors are explained in the player.
   steps, such as an audiobook, can show only ±30 s, and a single pair stays on narrow players);
   "Half back" and "Half fwd" (with the `halfJumps` option); speed with - and +
   around the value; mute and the volume slider with its value (not for media without sound); one
-  legend button per kind of marker; then, at the right, resume, captions, save frame, wide page,
-  picture in picture, full screen and the keys panel button (each only when it applies).
+  legend button per kind of marker; then, at the right, resume, repeat, captions, save frame, wide
+  page, picture in picture, full screen and the keys panel button (each only when it applies).
   A page can move its own controls that belong to playback (a wall-clock time at the playhead, a
   "Follow the playhead" checkbox) into this row with `addControls()`, after the player's controls on
   the left, so the player keeps the full width instead of sharing a row with them.
@@ -116,6 +116,7 @@ panel lists only the keys that do something on that player.
 | Shift+P, Shift+N | Previous or next item (after `setItems()`) | Page |
 | `,` `.` | Previous or next frame; pauses (video) | Page |
 | `<` `>`, `[` `]` | Slower or faster | Page |
+| R | Repeat on or off | Page |
 | Up, Down | Volume up or down 5% (media with sound) | Player |
 | M | Mute or unmute (media with sound) | Page |
 | C | Captions on or off (video with a captions or subtitles track) | Page |
@@ -135,8 +136,8 @@ panel lists only the keys that do something on that player.
   different things.
 - Held keys repeat only where repeating means moving further (arrows, J, L, the half jumps, 0 to 9,
   PageUp and PageDown, frames, speed, volume). Keys that switch something or act once (play, mute,
-  captions, save frame, wide page, full screen, picture in picture, the keys panel, Backspace, the
-  item keys) act once per press, so holding S saves one picture.
+  repeat, captions, save frame, wide page, full screen, picture in picture, the keys panel,
+  Backspace, the item keys) act once per press, so holding S saves one picture.
 - When a page has several players, page keys go to the one last played, clicked or focused; with
   exactly one player they go to it. A player inside something hidden (another view of a one-page app)
   takes no page keys.
@@ -183,6 +184,22 @@ panel lists only the keys that do something on that player.
   frames the video has shown while playing (`requestVideoFrameCallback`), or `data-fps` when the page
   knows it, or 1/30 s before either is known.
 
+## Repeat
+
+- **R and the repeat button** (two arrows in a loop, filled in the accent color while on) switch
+  repeat on or off, and a flash message says which. With repeat on, the media starts again from the
+  start each time it reaches the end, and keeps playing.
+- **Repeat is the media's `loop`.** The button shows the element's `loop`, and switching repeat sets
+  it, so a page that writes `<video loop>` (an animated GIF kept as a video) opens with repeat on,
+  and a page script that changes `loop` shows at once. The browser repeats an element by itself,
+  without a gap and without an `ended` event, so a page that goes on to its next item when one ends
+  stays on the one repeating. `loop` belongs to the element, not to its file: repeat stays on when
+  the page gives the element another file (the next part of a book).
+- **Starting again is not a jump.** With repeat on, a seek from the last 2 s to the first 2 s is the
+  media starting again, and Backspace still goes back to where the last jump left.
+- **Not remembered.** Each page view starts with the page's `loop`, off when the element has none.
+- A source repeats through a `loop` of its own ("Sources").
+
 ## Address and remembered settings
 
 - **`#t=` in the page address** starts the first player on the page at that time. It accepts `93.5`,
@@ -195,9 +212,9 @@ panel lists only the keys that do something on that player.
   A position within 5 s of either end is forgotten. A `#t=` link replaces the resume offer.
   `data-resume="off"` turns this off for a player.
 - **Speed** is remembered separately for video and for audio (people listen to recordings faster than
-  they watch video); **volume** is shared. Muting is not remembered. Until someone changes the volume,
-  the player keeps the level the page gave the element (a site may play media below full volume), and
-  unmuting a player whose volume is at 0 returns to that level.
+  they watch video); **volume** is shared. Muting is not remembered, and neither is repeat. Until
+  someone changes the volume, the player keeps the level the page gave the element (a site may play
+  media below full volume), and unmuting a player whose volume is at 0 returns to that level.
 - **Captions** on or off and **wide page** on or off are remembered and shared by every player on the
   site: someone who reads captions wants them on the next video too.
 - Everything is kept in the browser's local storage under keys starting `media-player:`, separately for
@@ -256,10 +273,12 @@ The player sends these events from its root element (`.mp`). They bubble, so a p
 | `media-player:seek` | `from`, `to`, `cause` | The player moved the playhead. `cause`: `skip`, `percent`, `marker`, `half-back`, `half-forward`, `jump-back`, `start`, `end`, `frame`, `scale`, `resume`, `address`, `media-session` |
 | `media-player:marker` | `index`, `marker` | The current marker changed (`index` -1 and `marker` null before the first one) |
 | `media-player:captions` | `showing` | Captions were switched on or off |
+| `media-player:repeat` | `repeat` | Repeat was switched on or off |
 | `media-player:wide` | `wide` | Wide page was switched on or off |
 
-Seeks made by page scripts are not announced: the page already knows about them, and the element's
-own `seeking` and `seeked` events report every seek.
+What page scripts do themselves, a seek or setting `loop`, is not announced: the page already knows
+about it, and the element's own `seeking` and `seeked` events report every seek, repeat starting
+the media again included.
 
 ## Sources
 
@@ -269,14 +288,21 @@ acts like a media element, usually a subclass of `MediaPlayer.Source`:
 
 - **Properties the player reads:** `currentTime` (also set), `duration`, `paused`, `ended`, `seeking`,
   `playbackRate` and `defaultPlaybackRate` (also set); `volume` and `muted` (also set) unless the
-  player has `sound: false`; and, when it has them, `readyState` (by default 1 once `duration` is
-  known), `buffered`, `error` and `textTracks`.
+  player has `sound: false`; `loop` (also set), which `MediaPlayer.Source` keeps, off until
+  switched; and, when it has them, `readyState` (by default 1 once `duration` is known), `buffered`,
+  `error` and `textTracks`.
 - **Methods:** `play()` (may return a promise) and `pause()`.
 - **Events,** sent with `emit(name)` under the media element's names: `loadedmetadata`,
   `durationchange`, `play`, `playing`, `pause`, `ended`, `timeupdate`, `seeking`, `seeked`, `waiting`,
   `canplay`, `progress`, `ratechange`, `volumechange`, `error`, `loadstart`, `emptied`. As with a
   media element, `currentTime` already gives the new time when `seeking` is sent: the player notes
   where a jump left from on `seeking`, for Backspace.
+- **Repeat.** An element repeats by itself; a source cannot, since only its page knows how to play
+  it again, so the player does it. When a source sends `ended` with `loop` on, the player seeks it
+  to 0 and plays it, once the page's own handlers for `ended` have run, and not if one of them
+  started it playing (a page that went on to its next item). This start again is not announced as a
+  seek, as the browser's for an element is not. A source without `loop`, one not made from
+  `MediaPlayer.Source` that does not provide it, has no repeat button and no R.
 
 `MediaPlayer.attach(source, {stage, kind, ...})` builds the player around `stage`, the page element
 that shows the source, and takes the same options as `enhance()`. `kind` ('video' or 'audio') is
@@ -302,11 +328,12 @@ unless the page gives it a `resumeKey`.
 ## Testing
 
 - `node --test` runs `tests/media-player.test.js`: time formatting and parsing, `#t=` reading, the
-  notch spacing, speed steps, markers and their kinds, the half jumps, frame file names, and that no
-  key, with or without Shift, does two things on any kind of player.
+  notch spacing, speed steps, markers and their kinds, the half jumps, repeat starting again told
+  from a jump, a source's `loop`, frame file names, and that no key, with or without Shift, does two
+  things on any kind of player.
 - `demo/index.html` shows a video with two kinds of markers, wide page, half jumps and frame saving;
-  audio in parts; two cameras on one clock through a source; audio in a resizable box; and a missing
-  file. A line at the top shows the player's events as they happen. `demo/make-media.sh` makes its
+  audio in parts; two cameras on one clock through a source; audio in a resizable box, with `loop`
+  written by the page; and a missing file. A line at the top shows the player's events as they happen. `demo/make-media.sh` makes its
   media with ffmpeg (a test pattern with the time and frame number burned in, so seeks and frame steps
   can be read off the picture). `demo/serve.py` serves it with Range support, which
   `python3 -m http.server` lacks: without it the browser can only seek within what it has downloaded.
@@ -322,6 +349,14 @@ unless the page gives it a `resumeKey`.
   is copied there; the checksums keep every copy unedited, so this repository stays the one place to
   fix. Until 2026-10-11 projects loaded the files from `../media-player`.
 - **No automatic resume.** Offering a button is predictable; jumping on load surprises.
+- **Repeat is the element's `loop`, not a setting of the player's** (2026-10-27). The browser
+  repeats an element without a gap and without ending it, `<video loop>` and page scripts that set
+  `loop` keep working, and the state lives in one place, the element, as speed and volume do.
+- **Repeat is not remembered** (2026-10-27). Repeat is a choice about one file, a song or a short
+  clip, while captions, speed and wide page are about the person. Carried to the next file, it
+  would start again media nobody asked to hear twice: the same surprise as jumping on load.
+- **R for repeat.** It is free among this player's keys and starts the word; L, which VLC and mpv
+  use for looping, is 10 s forward here, as on YouTube.
 - **Backspace for jump back.** Browsers no longer use it for page history, it is not used by the
   other players' keys, and "undo the jump" matches what it does in text.
 - **Home, End, Up, Down, PageUp and PageDown only with focus in the player, with markers or

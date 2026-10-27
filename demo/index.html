@@ -78,7 +78,7 @@
 
 <h2>Video with two kinds of markers</h2>
 <p>The legend's buttons hide or show a kind. <strong>T</strong> widens the page, <strong>S</strong> saves the frame,
-    <strong>Shift+J</strong> and <strong>Shift+L</strong> jump by halves.</p>
+    <strong>R</strong> repeats, <strong>Shift+J</strong> and <strong>Shift+L</strong> jump by halves.</p>
 <div class="demo-video">
     <video controls preload="metadata" src="media/pattern.mp4" data-media-player data-title="Test pattern"
         data-wide data-half-jumps
@@ -93,16 +93,16 @@
 <audio id="parts" controls preload="metadata" src="media/tone.m4a" data-media-player data-title="Part 1: tone"></audio>
 
 <h2>Two cameras on one clock, without sound</h2>
-<p>A source: the player drives both videos as one.</p>
+<p>A source: the player drives both videos as one, and with <strong>R</strong> starts both again at the end.</p>
 <div class="cameras" id="cameras">
     <video muted preload="metadata" src="media/pattern.mp4"></video>
     <video muted preload="metadata" src="media/pattern.mp4"></video>
 </div>
 
 <h2>Audio in a box you can resize</h2>
-<p>Drag the lower right corner: the scale and controls follow the box's width.</p>
+<p>Drag the lower right corner: the scale and controls follow the box's width. The page wrote <code>loop</code>, so repeat starts on.</p>
 <div class="resizable">
-    <audio controls preload="metadata" src="media/tone.m4a" data-media-player data-title="Tone, resizable" data-resume="off"></audio>
+    <audio controls loop preload="metadata" src="media/tone.m4a" data-media-player data-title="Tone, resizable" data-resume="off"></audio>
 </div>
 
 <h2>Missing file</h2>
@@ -115,7 +115,7 @@
     });
 
     const events = document.getElementById('events');
-    ['seek', 'marker', 'captions', 'wide'].forEach(function (name) {
+    ['seek', 'marker', 'captions', 'wide', 'repeat'].forEach(function (name) {
         document.addEventListener(`media-player:${name}`, function (event) {
             const detail = Object.assign({}, event.detail);
             delete detail.player;

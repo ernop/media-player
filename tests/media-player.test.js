@@ -133,6 +133,25 @@ test('halfJumpTarget halves back and mirrors forward until past the middle', () 
     assert.equal(mp.halfJumpTarget(1000, 1000, 1), 1000);
 });
 
+test('startsAgain tells repeat from the end to the start apart from a jump', () => {
+    assert.equal(mp.startsAgain(149.8, 0, 150), true);
+    assert.equal(mp.startsAgain(148.2, 0.04, 150), true);
+    assert.equal(mp.startsAgain(150, 0, 150), true);
+    assert.equal(mp.startsAgain(140, 0, 150), false);
+    assert.equal(mp.startsAgain(149.8, 30, 150), false);
+    assert.equal(mp.startsAgain(60, 0, 0), false);
+});
+
+test('a source keeps loop as a media element does, off until switched', () => {
+    const source = new mp.Source();
+    assert.ok('loop' in source);
+    assert.equal(source.loop, false);
+    source.loop = 1;
+    assert.equal(source.loop, true);
+    source.loop = false;
+    assert.equal(source.loop, false);
+});
+
 test('frameFileName makes a safe file name with the time in it', () => {
     assert.equal(mp.frameFileName('Trip: day 1/2', 61.5, false), 'Trip_ day 1_2 1-01.500.png');
     assert.equal(mp.frameFileName('', 3723.25, true), 'frame 1-02-03.250.png');
@@ -150,7 +169,7 @@ test('adjacentMarker steps forward and keeps stepping back while playing', () =>
 });
 
 // Keys as the handler passes them on: single characters lowercased, Shift as its own flag.
-const KEY_NAMES = [' ', 'k', 'j', 'l', 'm', 'c', 's', 't', 'f', 'i', 'p', 'n', '?', ',', '.', '<', '>', '[', ']',
+const KEY_NAMES = [' ', 'k', 'j', 'l', 'm', 'c', 's', 't', 'f', 'i', 'p', 'n', 'r', '?', ',', '.', '<', '>', '[', ']',
     '0', '5', '9', 'Backspace', 'Escape', 'Home', 'End', 'PageUp', 'PageDown',
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
 const PRESSES = KEY_NAMES.flatMap((key) => [{ key, shiftKey: false }, { key, shiftKey: true }]);
@@ -212,10 +231,20 @@ test('Shift makes a letter another key', () => {
     assert.deepEqual(keysFor('?', true), ['?']);
 });
 
-test('a player without sound, items, wide mode or frames leaves those keys alone', () => {
+test('a player without sound, items, wide mode, frames or repeat leaves those keys alone', () => {
     const plain = Object.fromEntries(mp.CAPABILITIES.map((cap) => [cap, cap === 'video']));
-    for (const press of ['m', 'ArrowUp', 's', 't', { key: 'p', shiftKey: true }, { key: 'n', shiftKey: true }]) {
+    for (const press of ['m', 'ArrowUp', 's', 't', 'r', { key: 'p', shiftKey: true }, { key: 'n', shiftKey: true }]) {
         assert.equal(matching(press, plain, true).length, 0, JSON.stringify(press));
+    }
+});
+
+test('R switches repeat once per press, on video and audio, and Shift+R does nothing', () => {
+    for (const video of [true, false]) {
+        const caps = Object.fromEntries(mp.CAPABILITIES.map((cap) => [cap, cap === 'repeat' || (cap === 'video' && video)]));
+        const found = matching('r', caps, false);
+        assert.deepEqual(found.map((entry) => entry.keys), ['R'], `video=${video}`);
+        assert.equal(found[0].once, true);
+        assert.equal(matching({ key: 'r', shiftKey: true }, caps, false).length, 0, `Shift+R, video=${video}`);
     }
 });
 

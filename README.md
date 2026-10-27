@@ -1,8 +1,8 @@
 # media-player
 
 The one video and audio player for all of my projects: a notched, labeled seek scale with large
-elapsed and remaining times, YouTube-style keys plus jump-back, markers, frame steps, resume and
-`#t=` links. Plain JavaScript and CSS, no dependencies, no build step, no network requests.
+elapsed and remaining times, YouTube-style keys plus jump-back, markers, frame steps, repeat, resume
+and `#t=` links. Plain JavaScript and CSS, no dependencies, no build step, no network requests.
 
 What it does and why: [SPEC.md](SPEC.md).
 
@@ -36,6 +36,7 @@ loaded. The player takes the full width of its parent.
 | `data-skips` | Seconds to have skip buttons for, such as `"30"`; default `"5 30"`. On narrow players only the smallest stays |
 | `data-wide` | Offer wide page (T): the class `mp-wide` on `<html>`, which your CSS turns into a wider layout |
 | `data-sound="off"` | The media has no sound: no volume controls or keys |
+| `loop` | The element's own attribute: open with repeat on, which R and the repeat button switch |
 
 ## Copy it into a project
 
@@ -68,13 +69,14 @@ player.addControls(clockElement, checkboxLabel);   // page controls in the playe
 player.setItems({ label: 'Part', previous: () => showPart(1), next: null });   // Shift+P, Shift+N
 player.focus();                        // after a click on a page list that drives the player
 player.toggleCaptions();               // as the C key; also toggleWide(), toggleKind('note'), saveFrame()
+player.toggleRepeat();                 // as the R key; toggleRepeat(true) or toggleRepeat(false) sets it
 MediaPlayer.get(videoElement);         // the player for an element, if enhanced
 MediaPlayer.enhanceAll(container);     // enhance media added to the page later
 
 // Keep saved frames yourself instead of downloading them:
 MediaPlayer.enhance(videoElement, { saveFrame: ({ time, blob }) => upload(time, blob).then(() => 'Saved') });
 
-// Follow the player: seeks it made, the current marker, captions, wide page.
+// Follow the player: seeks it made, the current marker, captions, repeat, wide page.
 document.addEventListener('media-player:marker', (event) => highlight(event.detail.marker));
 ```
 
