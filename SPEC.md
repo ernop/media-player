@@ -176,8 +176,9 @@ panel lists only the keys that do something on that player.
   order of importance, and each marker names its `kind`. The first kind is drawn on top where markers
   overlap. A marker of a kind not in the list is a page bug and stops the player with an error. The
   legend has a button per kind with its color, name and count; pressing it hides that kind from the
-  scale, and PageUp and PageDown then pass over it. Hidden kinds are not remembered: the next page
-  view shows every kind.
+  scale, and PageUp and PageDown then pass over it. Hidden kinds are not remembered by the player
+  itself: the next page view shows every kind unless the page restores its own choice via
+  `toggleKind(kind, shown, { silent: true })` and follows `media-player:markers`.
 - **The current marker.** The last marker at or before the playhead is drawn taller on the scale, and
   each change is announced as a `media-player:marker` event, so a page can follow along (a shot strip,
   a chapter list).
@@ -273,6 +274,7 @@ The player sends these events from its root element (`.mp`). They bubble, so a p
 |---|---|---|
 | `media-player:seek` | `from`, `to`, `cause` | The player moved the playhead. `cause`: `skip`, `percent`, `marker`, `half-back`, `half-forward`, `jump-back`, `start`, `end`, `frame`, `scale`, `resume`, `address`, `media-session` |
 | `media-player:marker` | `index`, `marker` | The current marker changed (`index` -1 and `marker` null before the first one) |
+| `media-player:markers` | `kind`, `shown`, `hiddenKinds` | A marker kind was shown or hidden on the scale |
 | `media-player:captions` | `showing`, `index`, `track` | Captions were switched on, off or to another track |
 | `media-player:audio-track` | `index`, `track` | The audio track switched between Original (0) and an alternate track |
 | `media-player:repeat` | `repeat` | Repeat was switched on or off |

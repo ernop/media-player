@@ -70,7 +70,7 @@ player.seek(95, 'Q&A');   // jump and show a label
 player.addControls(clockElement, checkboxLabel);   // page controls in the player's controls row
 player.setItems({ label: 'Part', previous: () => showPart(1), next: null });   // Shift+P, Shift+N
 player.focus();                        // after a click on a page list that drives the player
-player.toggleCaptions();               // as the C key; also toggleWide(), toggleKind('note'), saveFrame()
+player.toggleCaptions();               // as the C key; also toggleWide(), toggleKind('note', false), saveFrame()
 player.toggleRepeat();                 // as the R key; toggleRepeat(true) or toggleRepeat(false) sets it
 MediaPlayer.get(videoElement);         // the player for an element, if enhanced
 MediaPlayer.enhanceAll(container);     // enhance media added to the page later
