@@ -168,8 +168,23 @@ test('adjacentMarker steps forward and keeps stepping back while playing', () =>
     assert.equal(mp.adjacentMarker(markers, 10.5, -1), null);
 });
 
+test('normalizeAudioTracks prepends Original and refuses missing src or label', () => {
+    assert.deepEqual(mp.normalizeAudioTracks(null), []);
+    assert.deepEqual(mp.normalizeAudioTracks([]), []);
+    assert.deepEqual(
+        mp.normalizeAudioTracks([{ src: '/dub.m4a', label: 'English dub', default: true }], 'Chinese'),
+        [
+            { src: '', label: 'Chinese', default: false },
+            { src: '/dub.m4a', label: 'English dub', default: true },
+        ],
+    );
+    assert.throws(() => mp.normalizeAudioTracks([{ label: 'Dub' }]), TypeError);
+    assert.throws(() => mp.normalizeAudioTracks([{ src: '/dub.m4a' }]), TypeError);
+    assert.throws(() => mp.normalizeAudioTracks('/dub.m4a'), TypeError);
+});
+
 // Keys as the handler passes them on: single characters lowercased, Shift as its own flag.
-const KEY_NAMES = [' ', 'k', 'j', 'l', 'm', 'c', 's', 't', 'f', 'i', 'p', 'n', 'r', '?', ',', '.', '<', '>', '[', ']',
+const KEY_NAMES = [' ', 'k', 'j', 'l', 'm', 'b', 'c', 's', 't', 'f', 'i', 'p', 'n', 'r', '?', ',', '.', '<', '>', '[', ']',
     '0', '5', '9', 'Backspace', 'Escape', 'Home', 'End', 'PageUp', 'PageDown',
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
 const PRESSES = KEY_NAMES.flatMap((key) => [{ key, shiftKey: false }, { key, shiftKey: true }]);
@@ -246,6 +261,16 @@ test('R switches repeat once per press, on video and audio, and Shift+R does not
         assert.equal(found[0].once, true);
         assert.equal(matching({ key: 'r', shiftKey: true }, caps, false).length, 0, `Shift+R, video=${video}`);
     }
+});
+
+test('B switches audio track once per press when audioTracks are present, and Shift+B does nothing', () => {
+    const withTracks = Object.fromEntries(mp.CAPABILITIES.map((cap) => [cap, cap === 'audioTracks' || cap === 'video' || cap === 'sound']));
+    const withoutTracks = Object.fromEntries(mp.CAPABILITIES.map((cap) => [cap, cap === 'video' || cap === 'sound']));
+    const found = matching('b', withTracks, false);
+    assert.deepEqual(found.map((entry) => entry.keys), ['B']);
+    assert.equal(found[0].once, true);
+    assert.equal(matching({ key: 'b', shiftKey: true }, withTracks, false).length, 0);
+    assert.equal(matching('b', withoutTracks, true).length, 0);
 });
 
 test('every key entry explains itself and names only known capabilities', () => {

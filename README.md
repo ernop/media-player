@@ -36,6 +36,8 @@ loaded. The player takes the full width of its parent.
 | `data-skips` | Seconds to have skip buttons for, such as `"30"`; default `"5 30"`. On narrow players only the smallest stays |
 | `data-wide` | Offer wide page (T): the class `mp-wide` on `<html>`, which your CSS turns into a wider layout |
 | `data-sound="off"` | The media has no sound: no volume controls or keys |
+| `data-audio-tracks` | JSON list of `{"src": "…", "label": "English dub"}` synced alternate audio tracks (B switches) |
+| `data-original-audio-label` | Label for the element's built-in audio track when alternate tracks exist; default `"Original"` |
 | `loop` | The element's own attribute: open with repeat on, which R and the repeat button switch |
 
 ## Copy it into a project

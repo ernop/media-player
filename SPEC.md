@@ -119,7 +119,8 @@ panel lists only the keys that do something on that player.
 | R | Repeat on or off | Page |
 | Up, Down | Volume up or down 5% (media with sound) | Player |
 | M | Mute or unmute (media with sound) | Page |
-| C | Captions on or off (video with a captions or subtitles track) | Page |
+| B | Switch audio track (when alternate audio tracks are given) | Page |
+| C | Captions on or off, or cycle caption tracks (video with captions or subtitles) | Page |
 | S | Save the frame showing as a picture (video) | Page |
 | T | Wide page or normal width (with the `wide` option) | Page |
 | F, double-click | Full screen (video) | Page |
@@ -272,7 +273,8 @@ The player sends these events from its root element (`.mp`). They bubble, so a p
 |---|---|---|
 | `media-player:seek` | `from`, `to`, `cause` | The player moved the playhead. `cause`: `skip`, `percent`, `marker`, `half-back`, `half-forward`, `jump-back`, `start`, `end`, `frame`, `scale`, `resume`, `address`, `media-session` |
 | `media-player:marker` | `index`, `marker` | The current marker changed (`index` -1 and `marker` null before the first one) |
-| `media-player:captions` | `showing` | Captions were switched on or off |
+| `media-player:captions` | `showing`, `index`, `track` | Captions were switched on, off or to another track |
+| `media-player:audio-track` | `index`, `track` | The audio track switched between Original (0) and an alternate track |
 | `media-player:repeat` | `repeat` | Repeat was switched on or off |
 | `media-player:wide` | `wide` | Wide page was switched on or off |
 
@@ -303,6 +305,22 @@ acts like a media element, usually a subclass of `MediaPlayer.Source`:
   started it playing (a page that went on to its next item). This start again is not announced as a
   seek, as the browser's for an element is not. A source without `loop`, one not made from
   `MediaPlayer.Source` that does not provide it, has no repeat button and no R.
+
+## Alternate audio tracks and multiple caption tracks
+
+- **Alternate audio tracks (`data-audio-tracks`, `options.audioTracks`):** A JSON list of
+  `{"src": "/path/dub.m4a", "label": "English dub", "default": false}` (each needs a non-empty `src`
+  and `label`). Index 0 is always the media element's own audio (`data-original-audio-label`,
+  default `"Original"`). Switching to an alternate track mutes the main element internally and plays
+  a synced `<audio>` element locked to play, pause, seek, playback speed, volume and mute (so the
+  volume slider and M still control the active track without falsely showing "Muted"). Drift above
+  120 ms snaps back on the animation frame. **B** and the `Audio: …` button cycle through tracks;
+  `setAudioTrack(index)` and `setAudioTracks(list)` let page scripts switch or update tracks at
+  runtime. Load failures surface in the player error banner.
+- **Multiple caption tracks:** With one `<track kind="captions|subtitles">`, C toggles it on and
+  off as before. With two or more tracks, C cycles through each track in order and then off, showing
+  `CC: <lang>` on the button; `setCaptionTrack(index)` selects one directly (`-1` turns captions
+  off).
 
 `MediaPlayer.attach(source, {stage, kind, ...})` builds the player around `stage`, the page element
 that shows the source, and takes the same options as `enhance()`. `kind` ('video' or 'audio') is
